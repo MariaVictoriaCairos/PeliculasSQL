@@ -63,3 +63,7 @@ Este proyecto consiste en el análisis y manipulación de una base de datos de p
 Este proyecto permitió poner en práctica la construcción de consultas SQL avanzadas, analizar una base de datos relacional y manejar diferentes situaciones como valores nulos y relaciones entre tablas.  
 Tenía más de 15 años sin trabajar en SQL. Al finalizar el proyecto me sentí satisfecha por la abilidad con pude alcanzar en la resolución de los últimos ejercicios. 
 
+## ✅ Correcciones
+
+Los comentarios del Feedback se trabajan en el archivo "Ejercicios_resueltos.sql" colocandole un comentario en la última línea de la sentencia SQL.
+en el caso del ejercicio 56 donde se buscan los actores que no han actuado en peliculas de 'music', se hace una aclaratoria para demostrar que la sentencia si excluye la categoria 'Music'. Agradezco que si aún no que da claro, me lo vuelvan a comentar.

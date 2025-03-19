@@ -2,23 +2,21 @@
 -- 2. Muestra los nombres de todas las películas con una clasificación por edades de ‘R’.
 --
 SELECT  i."title" AS pelicula, 
-        i."rating" AS clasificacion
+      i."rating" AS clasificacion
 FROM FILM AS i 
 WHERE i."rating" = 'R';
 
 -- 3. Encuentra los nombres de los actores que tengan un “actor_id” entre 30 y 40.
 
-SELECT  concat(a."first_name", ' ', a."last_name") AS Nombre, 
+SELECT concat(a."first_name", ' ', a."last_name") AS Nombre, 
         a."actor_id"
 FROM actor AS a
-WHERE a."actor_id" BETWEEN '30' AND '40';
+WHERE a."actor_id" BETWEEN 30 AND 40;
 
 -- 4. Obtén las películas cuyo idioma coincide con el idioma original.
 -- Resultado: no existen coincidencias del idioma con el idioma original.
 
-SELECT  f."title", 
-        f."language_id", 
-        f."original_language_id"
+SELECT f."title", f."language_id", f."original_language_id"
 FROM film AS f
 WHERE f."language_id" = f."original_language_id";
 
@@ -50,7 +48,7 @@ SELECT  i."title" AS Pelicula,
         i."rating" AS clasificacion, 
         i."length" AS Tiempo_Min
 FROM FILM AS i 
-WHERE i."rating" = 'PG-13' AND i."length"> '180';
+WHERE i."rating" = 'PG-13' OR  i."length"> 180;                         -- Corrección: Se corrige el AND por el OR
 
 -- 9. Encuentra la variabilidad de lo que costaría reemplazar las películas.
 SELECT VARIANCE(replacement_cost) AS Varianza
@@ -91,12 +89,12 @@ GROUP BY i."rating";
 SELECT  i."title" AS Pelicula, 
         i."length" AS Tiempo_Min
 FROM FILM AS i 
-WHERE  i."length"> '180';
+WHERE  i."length"> 180;                                                 -- Corrección: Se le quitan las comillas al numero
 
 -- 15. ¿Cuánto dinero ha generado en total la empresa?
 
-SELECT sum(payment_id) AS Ingresos_Totales
-FROM payment; 
+SELECT sum("amount") AS Ingresos_Totales
+FROM payment;                                                           -- Corrección: Se corrige el campo para sumar amount y calcular el total de ingresos
 
 -- 16. Muestra los 10 clientes con mayor valor de id.
 SELECT concat(c."first_name", ' ', c."last_name") AS Cliente,
@@ -156,11 +154,11 @@ SELECT concat(a."first_name", ' ', a."last_name")
 FROM ACTOR AS A; 
 
 -- 23. Números de alquiler por día, ordenados por cantidad de alquiler de forma descendente.
-SELECT  r."rental_date",
+SELECT  date_trunc('day',r."rental_date") AS Dia,
         count(r."rental_date") AS Alquileres_por_dia
 FROM RENTAL AS R 
-GROUP BY r."rental_date"
-ORDER BY Alquileres_por_dia DESC; 
+GROUP BY Dia 
+ORDER BY Alquileres_por_dia DESC;                               -- Corrección: Se usa Date_trunc para coger solo la fecha (Dia) y se agrupa por Dia
 
 -- 24. Encuentra las películas con una duración superior al promedio.
 SELECT 
@@ -408,23 +406,23 @@ CROSS JOIN CATEGORY AS C;
 -- no aporta valor porque lista todas las peliculas combinadas con todas la categorias sin relación alguna.
 
 -- 45. Encuentra los actores que han participado en películas de la categoría 'Action'.
-WITH Comedy AS (
-    SELECT  F."film_id" AS Pelicula_id,         -- Busca las peliculas con categoria Comedy
+WITH Action AS (
+    SELECT  F."film_id" AS Pelicula_id,         -- Busca las peliculas con categoria Action
             f."title" AS pelicula
     FROM FILM AS F 
     INNER JOIN FILM_CATEGORY AS FC 
     ON fc."film_id" = f."film_id"
     INNER JOIN CATEGORY AS c 
     ON fc."category_id"=c."category_id"
-    WHERE c."name"='Comedy'
+    WHERE c."name"='Action'
 )
 SELECT concat(a."first_name", ' ', a."last_name") AS actor,
         c."pelicula"
 FROM actor AS a
 INNER JOIN FILM_ACTOR AS FA 
 ON a."actor_id"= fa."actor_id"
-INNER JOIN Comedy AS C
-ON fa."film_id"= c."pelicula_id";
+INNER JOIN Action AS C
+ON fa."film_id"= c."pelicula_id";                                       -- Se cambia Comedy por Action
 
 -- 46. Encuentra todos los actores que no han participado en películas.
 
@@ -612,9 +610,7 @@ ORDER BY a."last_name";
 
 WITH PeliculasMusic AS(
      SELECT     
-            f."film_id",
-            f."title" AS Pelicula,
-            c."name" AS categoria
+            f."film_id"
      FROM film AS f
      INNER JOIN FILM_CATEGORY AS FC 
      ON f."film_id"= FC."film_id"
@@ -622,7 +618,7 @@ WITH PeliculasMusic AS(
      ON FC."category_id"= C."category_id"
      WHERE c."name" = 'Music'
 )
-SELECT  DISTINCT                                            -- el distinc se coloca para que salga una sola vez el autor
+SELECT  DISTINCT                                            
         a."last_name" AS Apellido,
         a."first_name" AS Nombre   
 FROM actor AS a
@@ -630,6 +626,48 @@ INNER JOIN film_actor AS fa
 ON a."actor_id"=FA."actor_id"
 WHERE fa."film_id" NOT IN (SELECT film_id FROM PeliculasMusic )
 ORDER BY a."last_name"; 
+
+
+-- Explicación a la correcion sugerida. 
+-- la línea WHERE fa."film_id" NOT IN (SELECT film_id FROM PeliculasMusic) es la que elimina en el listado las peliculas de categoria 'Music'. 
+-- Para comprobar que es así se incluye la columna categoría con la siguiente query, donde:
+--    1. en PeliculasMusic obtengo el listado de peliculas de categoria 'Music'
+--    2. en el where filtro que la pelicula no este en PeliculasMusic. esto me da el listado de actores que no han participado en peliculas de categoría 'music'
+--    3. para comprobar la categoria en la siguiente consulta incluí una tabla temporal Categoría y en el listado final incluyo la columna categoria
+--       comprobando que no aparecen actores en categorias de 'music'
+
+
+WITH PeliculasMusic AS (
+    SELECT f."film_id"
+    FROM film AS f
+    INNER JOIN film_category AS fc 
+    ON f."film_id" = fc."film_id"
+    INNER JOIN category AS c 
+    ON fc."category_id" = c."category_id"
+    WHERE c."name" = 'Music'
+),
+Categoria AS (
+    SELECT  
+        fc."film_id" AS "Num_Pelicula",  
+        c."name" AS "Categoria"
+    FROM film_category AS fc 
+    INNER JOIN category AS c 
+    ON fc."category_id" = c."category_id"
+)
+
+SELECT DISTINCT  
+    a."last_name" AS "Apellido",
+    a."first_name" AS "Nombre",
+    cat."Categoria"  
+FROM actor AS a
+INNER JOIN film_actor AS fa 
+ON a."actor_id" = fa."actor_id"
+INNER JOIN Categoria AS cat 
+ON fa."film_id" = cat."Num_Pelicula"  
+WHERE fa."film_id" NOT IN (SELECT "film_id" FROM PeliculasMusic)
+ORDER BY a."last_name";
+
+
 
 -- 57. Encuentra el título de todas las películas que fueron alquiladas por más de 8 días.
 WITH AlquileresPeliculas AS (                    -- se calcula el numero de veces que se alquila una película
